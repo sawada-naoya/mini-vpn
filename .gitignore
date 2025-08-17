@@ -1,8 +1,8 @@
 # Go
 *.exe *.exe~ *.dll *.so *.dylib *.test *.out
 /bin/ /dist/ go.work
-# Rust
-/target/
+# Rust build artifacts
+/rust-crypto/target/
 # OS / Editor
 .DS_Store *~ .vscode/ *.code-workspace
 # Security / runtime
