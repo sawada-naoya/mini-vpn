@@ -7,3 +7,5 @@
 .DS_Store *~ .vscode/ *.code-workspace
 # Security / runtime
 keys/*.key keys/*.crt keys/*.pem *.log *.pcap *.pid
+
+minivpn
