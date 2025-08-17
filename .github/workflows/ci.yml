@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# 同一ブランチの重複ジョブをキャンセル（無駄な消費を防ぐ）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go fmt/lint/build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      # 依存キャッシュ（速くなる）
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      # フォーマットチェック（gofumpt & goimports）
+      - name: Install format tools
+        run: |
+          go install mvdan.cc/gofumpt@latest
+          go install golang.org/x/tools/cmd/goimports@latest
+      - name: Check formatting
+        run: |
+          set -e
+          OUT1=$(gofumpt -l .); if [ -n "$OUT1" ]; then echo "::error::gofumpt needed on:"; echo "$OUT1"; exit 1; fi
+          OUT2=$(goimports -l .); if [ -n "$OUT2" ]; then echo "::error::goimports needed on:"; echo "$OUT2"; exit 1; fi
+
+      # Lint（golangci-lint）
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+          | sh -s -- -b $(go env GOPATH)/bin v1.60.3
+      - name: Run golangci-lint
+        run: golangci-lint run
+
+      # Build（最低限のビルド保証）
+      - name: Build
+        run: go build ./cmd/minivpn
+
+  rust:
+    name: Rust fmt/clippy/build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust-crypto
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      # Cargoキャッシュ
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust-crypto/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust-crypto/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      # フォーマット & Lint
+      - name: rustfmt check
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      # ビルド（ライブラリを確実に生成）
+      - name: Build
+        run: cargo build --release
