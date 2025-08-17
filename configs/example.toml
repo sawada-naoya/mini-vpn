@@ -1,0 +1,18 @@
+[net]
+local = ":51820"         # 自分が待ち受けるUDP(外側)のアドレス:ポート
+peer  = "127.0.0.1:51820" # 相手ピアのUDP(外側)アドレス:ポート
+
+[tun]
+name    = "tun0"         # 作るTUNインターフェイス名
+ip_cidr = "10.10.0.1/24" # そのIFに割り当てる仮想IP/プレフィックス
+mtu     = 1300           # 内側MTU（外側のUDP＋暗号オーバーヘッド分、低めに）
+
+[security]
+psk_file = "./keys/psk.hex" # 事前共有鍵(PSK)のファイルパス（**実体はgitに入れない**）
+
+[session]
+keepalive_sec   = 10     # NAT生存のためのKeepalive間隔(sec)
+dpd_timeout_sec = 30     # Dead Peer Detection：無応答で切れたと判断する秒数
+
+[metrics]
+listen = "127.0.0.1:9090" # /metrics を出すローカルHTTPエンドポイント

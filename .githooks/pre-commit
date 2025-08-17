@@ -1,0 +1,17 @@
+set -euo pipefail
+
+echo "[pre-commit] Go format & imports"
+command -v gofumpt >/dev/null || { echo "gofumpt not found"; exit 1; }
+command -v goimports >/dev/null || { echo "goimports not found"; exit 1; }
+gofumpt -w .
+goimports -w .
+
+echo "[pre-commit] Go lint (golangci-lint)"
+command -v golangci-lint >/dev/null || { echo "golangci-lint not found"; exit 1; }
+golangci-lint run
+
+echo "[pre-commit] Rust fmt + clippy"
+( cd rust-crypto && cargo fmt --all )
+( cd rust-crypto && cargo clippy --all-targets -- -D warnings )
+
+echo "[pre-commit] OK"
